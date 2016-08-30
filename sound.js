@@ -9,7 +9,7 @@ function isRelativePath(path) {
   return !/^\//.test(path);
 }
 
-function Sound(filename, basePath, onError) {
+function Sound(filename, name, onError) {
   this._filename = filename;
   if(!filename.startsWith('exp://')) {
     var asset = resolveAssetSource(filename);
@@ -26,21 +26,14 @@ function Sound(filename, basePath, onError) {
   }
 
   this._loaded = false;
-  this._key = nextKey++;
+  this._key = name;
   this._duration = -1;
   this._numberOfChannels = -1;
   this._volume = 1;
   this._pan = 0;
   this._numberOfLoops = 0;
-  RNSound.prepare(this._filename, this._key, (error, props) => {
-    if (props) {
-      if (typeof props.duration === 'number') {
-        this._duration = props.duration;
-      }
-      if (typeof props.numberOfChannels === 'number') {
-        this._numberOfChannels = props.numberOfChannels;
-      }
-    }
+  console.log(this._filename);
+  RNSound.prepare(this._filename, this._key, (error) => {
     if (error === null) {
       this._loaded = true;
     }
@@ -52,9 +45,9 @@ Sound.prototype.isLoaded = function() {
   return this._loaded;
 };
 
-Sound.prototype.play = function(onEnd) {
+Sound.prototype.play = function() {
   if (this._loaded) {
-    RNSound.play(this._key, (successfully) => onEnd && onEnd(successfully));
+    RNSound.play(this._key, this._volume);
   }
   return this;
 };
@@ -73,44 +66,14 @@ Sound.prototype.stop = function() {
   return this;
 };
 
-Sound.prototype.release = function() {
-  if (this._loaded) {
-    RNSound.release(this._key);
-  }
-  return this;
-};
-
-Sound.prototype.getDuration = function() {
-  return this._duration;
-};
-
-Sound.prototype.getNumberOfChannels = function() {
-  return this._numberOfChannels;
-};
-
-Sound.prototype.getVolume = function() {
-  return this._volume;
-};
-
 Sound.prototype.setVolume = function(value) {
-  this._volume = value;
+  this._volume = value/100.0;
   if (this._loaded) {
     if (IsAndroid) {
-      RNSound.setVolume(this._key, value, value);
+      RNSound.setVolume(this._key, this._volume, this._volume);
     } else {
-      RNSound.setVolume(this._key, value);
+      RNSound.setVolume(this._key, this._volume);
     }
-  }
-  return this;
-};
-
-Sound.prototype.getPan = function() {
-  return this._pan;
-};
-
-Sound.prototype.setPan = function(value) {
-  if (this._loaded) {
-    RNSound.setPan(this._key, this._pan = value);
   }
   return this;
 };
@@ -123,7 +86,7 @@ Sound.prototype.setNumberOfLoops = function(value) {
   this._numberOfLoops = value;
   if (this._loaded) {
     if (IsAndroid) {
-      RNSound.setLooping(this._key, !!value);
+      RNSound.setLooping(this._key, value);
     } else {
       RNSound.setNumberOfLoops(this._key, value);
     }
@@ -131,37 +94,9 @@ Sound.prototype.setNumberOfLoops = function(value) {
   return this;
 };
 
-Sound.prototype.getCurrentTime = function(callback) {
-  if (this._loaded) {
-    RNSound.getCurrentTime(this._key, callback);
-  }
+Sound.checkExpansionFile = function(version, patch, uri, errCallback) {
+  RNSound.checkExpansionFile(version, patch, uri, errCallback);
 };
-
-Sound.prototype.setCurrentTime = function(value) {
-  if (this._loaded) {
-    RNSound.setCurrentTime(this._key, value);
-  }
-  return this;
-};
-
-// ios only
-Sound.prototype.setCategory = function(value) {
-  RNSound.setCategory(this._key, value);
-};
-
-Sound.enable = function(enabled) {
-  RNSound.enable(enabled);
-};
-
-Sound.enableInSilenceMode = function(enabled) {
-  if (!IsAndroid) {
-    RNSound.enableInSilenceMode(enabled);
-  }
-};
-
-if (!IsAndroid) {
-  Sound.enable(true);
-}
 
 Sound.MAIN_BUNDLE = RNSound.MainBundlePath;
 Sound.DOCUMENT = RNSound.NSDocumentDirectory;
@@ -169,3 +104,4 @@ Sound.LIBRARY = RNSound.NSLibraryDirectory;
 Sound.CACHES = RNSound.NSCachesDirectory;
 
 module.exports = Sound;
+

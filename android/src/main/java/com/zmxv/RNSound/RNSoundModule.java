@@ -1,11 +1,13 @@
 package com.zmxv.RNSound;
 
 import android.media.MediaPlayer;
+import android.media.SoundPool;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.net.Uri;
 import android.content.res.AssetFileDescriptor;
 import android.util.Log;
+import android.media.AudioManager;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -25,7 +27,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class RNSoundModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
-  Map<Integer, MediaPlayer> playerPool = new HashMap<>();
+  SoundPool playerPool = new SoundPool(9, AudioManager.STREAM_MUSIC, 0);
+  Map<String, Integer> keys = new HashMap<>();
   ReactApplicationContext context;
   final static Object NULL = null;
   private static final String TAG = "RNSoundModule";
@@ -42,34 +45,59 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
   }
 
   @ReactMethod
-  public void prepare(final String fileName, final Integer key, final Callback callback) {
-    MediaPlayer player = createMediaPlayer(fileName);
-    if (player == null) {
+  public void checkExpansionFile(
+    final Integer ver, 
+    final Integer patch,
+    final String uri,
+    final Callback errCallabck) 
+  {
+    ZipResourceFile expansionFile = null;
+    AssetFileDescriptor fd = null;
+    try {
+        expansionFile = APKExpansionSupport.getAPKExpansionZipFile(this.context, ver, patch);
+        fd = expansionFile.getAssetFileDescriptor(uri);
+    } catch (IOException e) {
+        errCallabck.invoke(e.getMessage());
+        return;
+    } catch (NullPointerException e) {
+        errCallabck.invoke(e.getMessage());
+        return;
+    }
+    if(fd==null) {
+      errCallabck.invoke("No file");
+    } else {
+      try {
+        fd.close();
+      } catch (IOException e) {
+        Log.e(TAG, Arrays.toString(e.getStackTrace()));
+        e.getStackTrace();
+      }
+    } 
+  }
+
+
+  @ReactMethod
+  public void prepare(final String fileName, final String key, final Callback callback) {
+
+    Boolean player = createMediaPlayer(fileName, key);
+    if (player == false) {
       WritableMap e = Arguments.createMap();
       e.putInt("code", -1);
       e.putString("message", "resource not found");
       callback.invoke(e);
       return;
     }
-    try {
-      player.prepare();
-    } catch (Exception e) {
-    }
-    this.playerPool.put(key, player);
-    WritableMap props = Arguments.createMap();
-    props.putDouble("duration", player.getDuration() * .001);
-    callback.invoke(NULL, props);
+    callback.invoke(NULL);
   }
 
-  protected MediaPlayer createMediaPlayer(final String fileName) {
+  protected Boolean createMediaPlayer(final String fileName,final String key) {
     if(fileName.startsWith("exp://")) {
       String[] path = fileName.split("//");
-      int expVer = Integer.parseInt(path[1]);
-      int expPatchVer = Integer.parseInt(path[2]);
+      Integer expVer = Integer.parseInt(path[1]);
+      Integer expPatchVer = Integer.parseInt(path[2]);
       String uri = path[3];
       ZipResourceFile expansionFile = null;
       AssetFileDescriptor fd = null;
-      MediaPlayer mPlayer = new MediaPlayer();
       if(expVer>0) {
           try {
               expansionFile = APKExpansionSupport.getAPKExpansionZipFile(this.context, expVer, expPatchVer);
@@ -84,11 +112,9 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
       }
       if(fd!=null) {
         try {
-          mPlayer.setDataSource(fd.getFileDescriptor(), fd.getStartOffset(),fd.getLength());
-          mPlayer.prepare();
-        } catch (IOException e) {
-            Log.e(TAG, Arrays.toString(e.getStackTrace()));
-            e.getStackTrace();
+          Integer id = this.playerPool.load(fd.getFileDescriptor(), fd.getStartOffset(), fd.getLength(), 1);
+          this.keys.put(key, id);
+          Log.i(TAG, String.valueOf(id) + key);
         } catch (NullPointerException e) {
             Log.e(TAG, Arrays.toString(e.getStackTrace()));
             e.getStackTrace();
@@ -99,113 +125,46 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
           Log.e(TAG, Arrays.toString(e.getStackTrace()));
           e.getStackTrace();
         }
-        return mPlayer;
-      }
-    } else {
-      int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
-      if (res != 0) {
-        return MediaPlayer.create(this.context, res);
-      }
-      File file = new File(fileName);
-      if (file.exists()) {
-        Uri uri = Uri.fromFile(file);
-        return MediaPlayer.create(this.context, uri);
-      }
-    }
-    return null;
-  }
-
-  @ReactMethod
-  public void play(final Integer key, final Callback callback) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player == null) {
-      callback.invoke(false);
-      return;
-    }
-    if (player.isPlaying()) {
-      return;
-    }
-    player.setOnCompletionListener(new OnCompletionListener() {
-      @Override
-      public void onCompletion(MediaPlayer mp) {
-        if (!mp.isLooping()) {
-          callback.invoke(true);
-        }
-      }
-    });
-    player.setOnErrorListener(new OnErrorListener() {
-      @Override
-      public boolean onError(MediaPlayer mp, int what, int extra) {
-        callback.invoke(false);
         return true;
       }
-    });
-    player.start();
+    } 
+    return false;
   }
 
   @ReactMethod
-  public void pause(final Integer key) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null && player.isPlaying()) {
-      player.pause();
-    }
+  public void play(final String key, final Float volume) {
+    Integer id = this.keys.get(key);
+    Log.i(TAG, "play "+String.valueOf(id) + key + " vol: "+String.valueOf(volume));
+    id = this.playerPool.play(id, volume, volume, 1, -1, 1);
+    this.keys.put("stream_"+key, id);
   }
 
   @ReactMethod
-  public void stop(final Integer key) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null && player.isPlaying()) {
-      player.pause();
-      player.seekTo(0);
-    }
+  public void pause(final String key) {
+    Integer id = this.keys.get("stream_"+key);
+    this.playerPool.pause(id);
   }
 
   @ReactMethod
-  public void release(final Integer key) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null) {
-      player.release();
-      this.playerPool.remove(key);
-    }
+  public void stop(final String key) {
+    Integer id = this.keys.get("stream_"+key);
+    Log.i(TAG, "stop "+String.valueOf(id) + key);
+    this.playerPool.stop(id);
   }
 
   @ReactMethod
-  public void setVolume(final Integer key, final Float left, final Float right) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null) {
-      player.setVolume(left, right);
-    }
-  }
-
-  @ReactMethod
-  public void setLooping(final Integer key, final Boolean looping) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null) {
-      player.setLooping(looping);
-    }
-  }
-
-  @ReactMethod
-  public void setCurrentTime(final Integer key, final Float sec) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player != null) {
-      player.seekTo((int)Math.round(sec * 1000));
-    }
-  }
-
-  @ReactMethod
-  public void getCurrentTime(final Integer key, final Callback callback) {
-    MediaPlayer player = this.playerPool.get(key);
-    if (player == null) {
-      callback.invoke(-1, false);
+  public void setVolume(final String key, final Float left, final Float right) {
+    if(this.keys.get("stream_"+key)==null)
       return;
-    }
-    callback.invoke(player.getCurrentPosition() * .001, player.isPlaying());
+    Integer id = this.keys.get("stream_"+key);
+    Log.i(TAG, "vol "+String.valueOf(id) +" - " +  String.valueOf(left));
+    this.playerPool.setVolume(id, left, right);
   }
 
   @ReactMethod
-  public void enable(final Boolean enabled) {
-    // no op
+  public void setLooping(final String key, final Integer looping) {
+    Integer id = this.keys.get("stream_"+key);
+    this.playerPool.setLoop(id, looping);
   }
 
   @Override
@@ -215,10 +174,12 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     return constants;
   }
 
+  public void onDestroy() {
+    this.playerPool.release();
+  }
+
   public void onHostDestroy() {
-      for (Map.Entry<Integer, MediaPlayer> entry : this.playerPool.entrySet()) {
-        release(entry.getKey());
-      }
+    this.playerPool.release();
   }
 
   public void onHostPause() {}
