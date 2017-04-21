@@ -6,6 +6,7 @@ import android.media.MediaPlayer.OnErrorListener;
 import android.net.Uri;
 import android.content.res.AssetFileDescriptor;
 import android.util.Log;
+import android.media.AudioManager;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.io.IOException;
 import java.util.Arrays;
+import android.util.Log;
 
 public class RNSoundModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
   Map<Integer, MediaPlayer> playerPool = new HashMap<>();
@@ -53,7 +55,14 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     }
     try {
       player.prepare();
-    } catch (Exception e) {
+    } catch (Exception exception) {
+              Log.e("RNSoundModule", "Exception", exception);
+
+       WritableMap e = Arguments.createMap();
+        e.putInt("code", -1);
+        e.putString("message", exception.getMessage());
+        callback.invoke(e);
+        return;
     }
     this.playerPool.put(key, player);
     WritableMap props = Arguments.createMap();
@@ -111,6 +120,39 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
         Uri uri = Uri.fromFile(file);
         return MediaPlayer.create(this.context, uri);
       }
+    int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
+    if (res != 0) {
+      return MediaPlayer.create(this.context, res);
+    }
+    if(fileName.startsWith("http://") || fileName.startsWith("https://")) {
+      MediaPlayer mediaPlayer = new MediaPlayer();
+      mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+      Log.i("RNSoundModule", fileName);
+      try {
+        mediaPlayer.setDataSource(fileName);
+      } catch(IOException e) {
+        Log.e("RNSoundModule", "Exception", e);
+        return null;
+      }
+      return mediaPlayer;
+    }
+
+    if (fileName.startsWith("asset:/")){
+        try {
+            AssetFileDescriptor descriptor = this.context.getAssets().openFd(fileName.replace("asset:/", ""));
+            mediaPlayer.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+            return mediaPlayer;
+        } catch(IOException e) {
+            Log.e("RNSoundModule", "Exception", e);
+            return null;
+        }
+    }
+
+    File file = new File(fileName);
+    if (file.exists()) {
+      Uri uri = Uri.fromFile(file);
+      return MediaPlayer.create(this.context, uri);
     }
     return null;
   }
