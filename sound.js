@@ -10,19 +10,16 @@ function isRelativePath(path) {
   return !/^(\/|http(s?))/.test(path);
 }
 
-function Sound(filename, basePath, onError) {
-  this._filename = filename;
-  if(!filename.startsWith('exp://')) {
-    var asset = resolveAssetSource(filename);
-    if (asset) {
-      this._filename = asset.uri;
-      onError = basePath;
-    } else {
-      this._filename = basePath ? basePath + '/' + filename : filename;
-  
-      if (IsAndroid && !basePath && isRelativePath(filename)) {
-        this._filename = filename.toLowerCase().replace(/\.[^.]+$/, '');
-      }
+function Sound(filename, basePath, onError, options) {
+  var asset = resolveAssetSource(filename);
+  if (asset) {
+    this._filename = asset.uri;
+    onError = basePath;
+  } else {
+    this._filename = basePath ? basePath + '/' + filename : filename;
+
+    if (IsAndroid && !basePath && isRelativePath(filename)) {
+      this._filename = filename.toLowerCase().replace(/\.[^.]+$/, '');
     }
   }
 
@@ -34,7 +31,7 @@ function Sound(filename, basePath, onError) {
   this._pan = 0;
   this._numberOfLoops = 0;
   this._speed = 1;
-  RNSound.prepare(this._filename, this._key, (error, props) => {
+  RNSound.prepare(this._filename, this._key, options || {}, (error, props) => {
     if (props) {
       if (typeof props.duration === 'number') {
         this._duration = props.duration;
