@@ -57,7 +57,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     }
 
     final RNSoundModule module = this;
-    
+
     player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
       boolean callbackWasCalled = false;
 
@@ -206,7 +206,11 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
         if (!mp.isLooping()) {
           if (callbackWasCalled) return;
           callbackWasCalled = true;
-          callback.invoke(true);
+          try {
+            callback.invoke(true);
+          } catch (Exception e) {
+              //Catches the exception: java.lang.RuntimeException·Illegal callback invocation from native module
+          }
         }
       }
     });
