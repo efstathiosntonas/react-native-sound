@@ -178,6 +178,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     if (fileName.startsWith("asset:/")){
         try {
             AssetFileDescriptor descriptor = this.context.getAssets().openFd(fileName.replace("asset:/", ""));
+            MediaPlayer mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
             descriptor.close();
             return mediaPlayer;
