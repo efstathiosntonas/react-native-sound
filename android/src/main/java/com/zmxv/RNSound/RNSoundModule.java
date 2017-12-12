@@ -80,6 +80,9 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
         case "Voice":
           category = AudioManager.STREAM_VOICE_CALL;
           break;
+        case "Ring":
+          category = AudioManager.STREAM_RING;
+          break;
         default:
           Log.e("RNSoundModule", String.format("Unrecognised category %s", module.category));
           break;
