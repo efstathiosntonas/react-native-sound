@@ -19,8 +19,8 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.ExceptionsManagerModule;
 
-import com.android.vending.expansion.zipfile.APKExpansionSupport;
-import com.android.vending.expansion.zipfile.ZipResourceFile;
+import com.android.vending.expansion.zipfile_sound.APKExpansionSupport;
+import com.android.vending.expansion.zipfile_sound.ZipResourceFile;
 
 import java.io.File;
 import java.util.HashMap;

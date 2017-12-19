@@ -1,4 +1,4 @@
-package com.android.vending.expansion.zipfile;
+package com.android.vending.expansion.zipfile_sound;
 
 /*
  * Copyright (C) 2012 The Android Open Source Project
@@ -19,7 +19,7 @@ package com.android.vending.expansion.zipfile;
 //To implement APEZProvider in your application, you'll want to change
 //the AUTHORITY to match what you define in the manifest.
 
-import com.android.vending.expansion.zipfile.ZipResourceFile.ZipEntryRO;
+import com.android.vending.expansion.zipfile_sound.ZipResourceFile.ZipEntryRO;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;

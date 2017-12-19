@@ -1,5 +1,5 @@
 
-package com.android.vending.expansion.zipfile;
+package com.android.vending.expansion.zipfile_sound;
 
 /*
  * Copyright (C) 2012 The Android Open Source Project
