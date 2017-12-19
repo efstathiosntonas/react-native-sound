@@ -59,6 +59,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
       WritableMap e = Arguments.createMap();
       e.putInt("code", -1);
       e.putString("message", "resource not found");
+      callback.invoke(e);
       return;
     }
     this.playerPool.put(key, player);
@@ -161,9 +162,13 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
           } catch (IOException e) {
               Log.e(TAG, Arrays.toString(e.getStackTrace()));
               e.getStackTrace();
+              Log.e("RNSoundModule", "IOException", e);
+              return null;
           } catch (NullPointerException e) {
               Log.e(TAG, Arrays.toString(e.getStackTrace()));
               e.getStackTrace();
+              Log.e("RNSoundModule", "NullPointerException", e);
+              return null;
           }
       }
       if(fd!=null) {
