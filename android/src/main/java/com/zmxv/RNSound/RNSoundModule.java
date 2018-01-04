@@ -421,7 +421,11 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
       callback.invoke(-1, false);
       return;
     }
-    callback.invoke(player.getCurrentPosition() * .001, player.isPlaying());
+    try {
+      callback.invoke(player.getCurrentPosition() * .001, player.isPlaying());
+    } catch (IllegalStateException ignored) {
+      callback.invoke(-1, false);
+    }
   }
 
   //turn speaker on
