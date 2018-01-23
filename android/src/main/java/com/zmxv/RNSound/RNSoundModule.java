@@ -428,7 +428,6 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
     }
   }
 
-  
   //turn speaker on
   @ReactMethod
   public void setSpeakerphoneOn(final Integer key, final Boolean speaker) {
