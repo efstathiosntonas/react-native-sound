@@ -61,6 +61,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
       callback.invoke(e);
       return;
     }
+    this.playerPool.put(key, player);
 
     final RNSoundModule module = this;
 
@@ -75,6 +76,12 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
           break;
         case "System":
           category = AudioManager.STREAM_SYSTEM;
+          break;
+        case "Voice":
+          category = AudioManager.STREAM_VOICE_CALL;
+          break;
+        case "Ring":
+          category = AudioManager.STREAM_RING;
           break;
         default:
           Log.e("RNSoundModule", String.format("Unrecognised category %s", module.category));
@@ -93,7 +100,6 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
         if (callbackWasCalled) return;
         callbackWasCalled = true;
 
-        module.playerPool.put(key, mp);
         WritableMap props = Arguments.createMap();
         props.putDouble("duration", mp.getDuration() * .001);
         try {
@@ -127,10 +133,15 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     });
 
     try {
-      player.prepareAsync();
-    } catch (IllegalStateException ignored) {
+      if(options.hasKey("loadSync") && options.getBoolean("loadSync")) {
+        player.prepare();
+      } else {
+        player.prepareAsync();
+      }
+    } catch (Exception ignored) {
       // When loading files from a file, we useMediaPlayer.create, which actually
       // prepares the audio for us already. So we catch and ignore this error
+      Log.e("RNSoundModule", "Exception", ignored);
     }
   }
 
@@ -231,7 +242,9 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
   public void play(final Integer key, final Callback callback) {
     MediaPlayer player = this.playerPool.get(key);
     if (player == null) {
-      callback.invoke(false);
+      if (callback != null) {
+        callback.invoke(false);
+      }
       return;
     }
     if (player.isPlaying()) {
@@ -260,7 +273,12 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
       public synchronized boolean onError(MediaPlayer mp, int what, int extra) {
         if (callbackWasCalled) return true;
         callbackWasCalled = true;
-        callback.invoke(false);
+        
+        try {
+          callback.invoke(true);
+        } catch (Exception e) {
+          //Catches the exception: java.lang.RuntimeException·Illegal callback invocation from native module
+        }
         return true;
       }
     });
@@ -273,7 +291,9 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     if (player != null && player.isPlaying()) {
       player.pause();
     }
-    callback.invoke();
+    if (callback != null) {
+      callback.invoke();
+    }
   }
 
   @ReactMethod
@@ -343,6 +363,10 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
 
   @ReactMethod
   public void setSpeed(final Integer key, final Float speed) {
+    if (android.os.Build.VERSION.SDK_INT < 23) {
+      Log.w("RNSoundModule", "setSpeed ignored due to sdk limit");
+      return;
+    }
     MediaPlayer player = this.playerPool.get(key);
     if (player != null) {
       player.setPlaybackParams(player.getPlaybackParams().setSpeed(speed));
@@ -378,7 +402,11 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
     if (player != null) {
       player.setAudioStreamType(AudioManager.STREAM_MUSIC);
       AudioManager audioManager = (AudioManager)this.context.getSystemService(this.context.AUDIO_SERVICE);
-      audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      if(speaker){
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      }else{
+        audioManager.setMode(AudioManager.MODE_NORMAL);
+      }
       audioManager.setSpeakerphoneOn(speaker);
     }
   }
@@ -410,4 +438,3 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
 
   public void onHostResume() {}
 }
-
