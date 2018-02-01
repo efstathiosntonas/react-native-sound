@@ -45,7 +45,6 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements AudioMa
 
   public RNSoundModule(ReactApplicationContext context) {
     super(context);
-    context.addLifecycleEventListener(this);
     this.context = context;
     this.category = null;
   }
