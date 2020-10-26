@@ -77,9 +77,13 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
           } catch (IOException e) {
               Log.e(TAG, Arrays.toString(e.getStackTrace()));
               e.getStackTrace();
+              Log.e("RNSoundModule", "IOException", e);
+              return null;
           } catch (NullPointerException e) {
               Log.e(TAG, Arrays.toString(e.getStackTrace()));
               e.getStackTrace();
+              Log.e("RNSoundModule", "IOException", e);
+              return null;
           }
       }
       if(fd!=null) {
@@ -200,7 +204,11 @@ public class RNSoundModule extends ReactContextBaseJavaModule implements Lifecyc
       callback.invoke(-1, false);
       return;
     }
-    callback.invoke(player.getCurrentPosition() * .001, player.isPlaying());
+    try {
+      callback.invoke(player.getCurrentPosition() * .001, player.isPlaying());
+    } catch (IllegalStateException ignored) {
+      callback.invoke(-1, false);
+    }
   }
 
   @ReactMethod
