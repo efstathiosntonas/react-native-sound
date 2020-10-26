@@ -16,7 +16,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
 
 import com.android.vending.expansion.zipfile_sound.APKExpansionSupport;
-import com.android.vending.expansion.zipfile.ZipResourceFile;
+import com.android.vending.expansion.zipfile_sound.ZipResourceFile;
 
 import java.io.File;
 import java.util.HashMap;
