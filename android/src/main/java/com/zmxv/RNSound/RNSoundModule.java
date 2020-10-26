@@ -15,7 +15,7 @@ import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
 
-import com.android.vending.expansion.zipfile.APKExpansionSupport;
+import com.android.vending.expansion.zipfile_sound.APKExpansionSupport;
 import com.android.vending.expansion.zipfile.ZipResourceFile;
 
 import java.io.File;
